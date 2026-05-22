@@ -146,10 +146,10 @@
             const formData = new FormData();
             formData.append('message', query);
 
-            const response = await fetch('/ask', {
-                method: 'POST',
-                body: formData
-            });
+            const response = await fetch('https://sunday-emts.onrender.com/ask', {
+    method: 'POST',
+    body: formData
+});
             const data = await response.json();
 
             responseBox.innerText = data.text;
