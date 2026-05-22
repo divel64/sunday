@@ -8,7 +8,7 @@ import os
 app = Flask(__name__)
 
 # --- CONFIGURATION ---
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "PASTE_YOUR_GROQ_KEY_HERE")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
 client = groq.Groq(api_key=GROQ_API_KEY)
 
 current_language = "english"  
