@@ -5,9 +5,7 @@ from groq import Groq
 from gtts import gTTS
 
 app = Flask(__name__)
-
-# This unlocks permissions globally so your browser drops the security restriction
-CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app)
 
 GROQ_API_KEY = os.environ.get("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")
 client = None
@@ -23,18 +21,15 @@ AUDIO_FILE = "response.mp3"
 def index():
     return render_template('index.html')
 
-@app.route('/ask', methods=['POST', 'OPTIONS'])
+@app.route('/ask', methods=['POST'])
 def ask():
-    if request.method == 'OPTIONS':
-        return '', 200
-        
     user_message = request.form.get('message', '').strip()
     
     if not user_message:
         return jsonify({"text": "System core received an empty command, Sir."}), 400
 
     if not client:
-        return jsonify({"text": "Configuration Error: Groq API key is missing on the server mainframe."}), 500
+        return jsonify({"text": "Configuration Error: Groq API key is missing on Render settings dashboard."}), 500
 
     try:
         chat_completion = client.chat.completions.create(
@@ -77,10 +72,8 @@ def ask():
     except Exception as e:
         return jsonify({"text": f"Mainframe execution failure: {str(e)}"}), 500
 
-@app.route('/get-audio', methods=['GET', 'OPTIONS'])
+@app.route('/get-audio')
 def get_audio():
-    if request.method == 'OPTIONS':
-        return '', 200
     if os.path.exists(AUDIO_FILE):
         return send_file(AUDIO_FILE, mimetype="audio/mp3")
     return "No audio file available", 404
