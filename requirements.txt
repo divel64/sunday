@@ -1,4 +1,5 @@
-flask
-groq
-edge-tts
+Flask
+flask-cors
+google-generativeai
+gTTS
 gunicorn
