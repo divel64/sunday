@@ -145,7 +145,7 @@
             const formData = new FormData();
             formData.append('message', query);
 
-            // Connects absolute URL pathways to the divel web service
+            // Directly hitting your active deployment domain path
             const response = await fetch('https://divel-oc1q.onrender.com/ask', {
                 method: 'POST',
                 body: formData
@@ -159,7 +159,7 @@
                 mapFrame.style.display = "block";
             }
 
-            // Fetch the voice audio directly from the divel server host
+            // Direct route pathway for the synthesized voice file
             const audioResponse = await fetch('https://divel-oc1q.onrender.com/get-audio');
             if (audioResponse.ok) {
                 const audioBlob = await audioResponse.blob();
