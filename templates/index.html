@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -146,11 +145,11 @@
             const formData = new FormData();
             formData.append('message', query);
 
-           // Change this block to look exactly like this:
-           const response = await fetch('/ask', {
-           method: 'POST',
-           body: formData
-           });
+            // Connects absolute URL pathways to the divel web service
+            const response = await fetch('https://divel-oc1q.onrender.com/ask', {
+                method: 'POST',
+                body: formData
+            });
             const data = await response.json();
 
             responseBox.innerText = data.text;
@@ -160,8 +159,8 @@
                 mapFrame.style.display = "block";
             }
 
-            // Trigger Audio Playback
-            const audioResponse = await fetch('/get-audio');
+            // Fetch the voice audio directly from the divel server host
+            const audioResponse = await fetch('https://divel-oc1q.onrender.com/get-audio');
             if (audioResponse.ok) {
                 const audioBlob = await audioResponse.blob();
                 const audioUrl = URL.createObjectURL(audioBlob);
