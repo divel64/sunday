@@ -1,24 +1,25 @@
 import os
 from flask import Flask, render_template, request, jsonify, send_file
 from flask_cors import CORS
-import google.generativeai as genai
+from groq import Groq
 from gtts import gTTS
 
 app = Flask(__name__)
 CORS(app)
 
-# Configure Gemini API using the environment variable set on Render
-API_KEY = os.environ.get("GEMINI_API_KEY")
-if API_KEY:
-    genai.configure(api_key=API_KEY)
+# Configure Groq API using the environment variable set on Render
+GROQ_API_KEY = os.environ.get("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")
+client = None
+
+if GROQ_API_KEY:
+    client = Groq(api_key=GROQ_API_KEY)
 else:
-    print("WARNING: GEMINI_API_KEY environment variable not found.")
+    print("WARNING: GROQ_API_KEY environment variable not found.")
 
 AUDIO_FILE = "response.mp3"
 
 @app.route('/')
 def index():
-    # Serves the index.html file from the templates folder
     return render_template('index.html')
 
 @app.route('/ask', methods=['POST'])
@@ -28,24 +29,32 @@ def ask():
     if not user_message:
         return jsonify({"text": "System core received an empty command, Sir."}), 400
 
-    if not API_KEY:
-        return jsonify({"text": "Configuration Error: Gemini API key is missing on the server mainframe."}), 500
+    if not client:
+        return jsonify({"text": "Configuration Error: Groq API key is missing on the server mainframe."}), 500
 
     try:
-        # Initializing the model configuration
-        model = genai.GenerativeModel('gemini-pro')
+        # Executing the Groq chat completion request
+        # You can change the model to "llama3-8b-8192" or any other supported Groq model ID
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are Sunday, a highly intelligent, sleek, and loyal AI assistant inspired by Jarvis. Respond concisely and professionally."
+                },
+                {
+                    "role": "user",
+                    "content": user_message
+                }
+            ],
+            model="llama-3.3-70b-versatile",
+        )
         
-        # Injecting Jarvis/Sunday identity context alongside the user's prompt
-        system_context = f"You are Sunday, a highly intelligent, sleek, and loyal AI assistant inspired by Jarvis. Respond concisely and professionally to the following command: {user_message}"
-        
-        response = model.generate_content(system_context)
-        response_text = response.text
+        response_text = chat_completion.choices[0].message.content
 
         # Core logic to detect navigation or location keywords
         map_link = None
         lower_message = user_message.lower()
         if "where is" in lower_message or "map of" in lower_message or "navigate to" in lower_message:
-            # Extract place name for the map overlay link
             place = user_message.replace("where is", "").replace("map of", "").replace("navigate to", "").strip()
             if place:
                 map_link = f"https://www.google.com/maps?q={place}&output=embed"
