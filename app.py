@@ -8,11 +8,11 @@ app = Flask(__name__)
 CORS(app)
 
 # Configure Groq API using the environment variable set on Render
-GROQ_API_KEY = os.environ.get("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")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 client = None
 
 if GROQ_API_KEY:
-    client = Groq(api_key=GROQ_API_KEY)
+    client = Groq(api_key=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)
 else:
     print("WARNING: GROQ_API_KEY environment variable not found.")
 
