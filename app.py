@@ -5,9 +5,10 @@ from groq import Groq
 from gtts import gTTS
 
 app = Flask(__name__)
-CORS(app)
 
-# Configure Groq API using the environment variable set on Render
+# This unlocks permissions globally so your browser drops the security restriction
+CORS(app, resources={r"/*": {"origins": "*"}})
+
 GROQ_API_KEY = os.environ.get("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")
 client = None
 
@@ -22,8 +23,11 @@ AUDIO_FILE = "response.mp3"
 def index():
     return render_template('index.html')
 
-@app.route('/ask', methods=['POST'])
+@app.route('/ask', methods=['POST', 'OPTIONS'])
 def ask():
+    if request.method == 'OPTIONS':
+        return '', 200
+        
     user_message = request.form.get('message', '').strip()
     
     if not user_message:
@@ -33,8 +37,6 @@ def ask():
         return jsonify({"text": "Configuration Error: Groq API key is missing on the server mainframe."}), 500
 
     try:
-        # Executing the Groq chat completion request
-        # You can change the model to "llama3-8b-8192" or any other supported Groq model ID
         chat_completion = client.chat.completions.create(
             messages=[
                 {
@@ -51,7 +53,6 @@ def ask():
         
         response_text = chat_completion.choices[0].message.content
 
-        # Core logic to detect navigation or location keywords
         map_link = None
         lower_message = user_message.lower()
         if "where is" in lower_message or "map of" in lower_message or "navigate to" in lower_message:
@@ -59,9 +60,11 @@ def ask():
             if place:
                 map_link = f"https://www.google.com/maps?q={place}&output=embed"
 
-        # Generate the voice synthesis file in the background
         if os.path.exists(AUDIO_FILE):
-            os.remove(AUDIO_FILE)
+            try:
+                os.remove(AUDIO_FILE)
+            except Exception:
+                pass
             
         tts = gTTS(text=response_text, lang='en', tld='com')
         tts.save(AUDIO_FILE)
@@ -74,8 +77,10 @@ def ask():
     except Exception as e:
         return jsonify({"text": f"Mainframe execution failure: {str(e)}"}), 500
 
-@app.route('/get-audio')
+@app.route('/get-audio', methods=['GET', 'OPTIONS'])
 def get_audio():
+    if request.method == 'OPTIONS':
+        return '', 200
     if os.path.exists(AUDIO_FILE):
         return send_file(AUDIO_FILE, mimetype="audio/mp3")
     return "No audio file available", 404
