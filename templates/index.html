@@ -1,1 +1,182 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sunday AI Core</title>
+    <style>
+        body {
+            background-color: #0d0d11;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+        }
+        .logo-box {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            animation: pulse 2s infinite ease-in-out;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.08); opacity: 1; filter: drop-shadow(0 0 15px #4285f4); }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #4285f4, #9b72cb, #d96570);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+        .input-area {
+            display: flex;
+            background: #1e1e24;
+            border: 1px solid #2d2d39;
+            border-radius: 30px;
+            padding: 8px 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #fff;
+            font-size: 1rem;
+            padding: 8px;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(45deg, #4285f4, #9b72cb);
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        .response-box {
+            margin-top: 30px;
+            padding: 15px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 12px;
+            min-height: 50px;
+            display: none;
+            color: #cbd5e1;
+            text-align: left;
+            line-height: 1.5;
+        }
+        iframe {
+            width: 100%;
+            height: 300px;
+            border: none;
+            border-radius: 12px;
+            margin-top: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo-box">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="3" width="20" height="18" rx="3" stroke="url(#grad)" stroke-width="2"/>
+            <path d="M7 8L11 12L7 16" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="13" y1="16" x2="17" y2="16" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round"/>
+            <defs>
+                <linearGradient id="grad" x1="0" y1="0" x2="24" y2="24">
+                    <stop offset="0%" stop-color="#4285f4" />
+                    <stop offset="50%" stop-color="#9b72cb" />
+                    <stop offset="100%" stop-color="#d96570" />
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <h1>Sunday AI Operational</h1>
+    <div class="subtitle">System mainframe initialized. Ready for input, Sir.</div>
+
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Send a command..." onkeypress="handleKey(event)">
+        <button onclick="sendCommand()">Execute</button>
+    </div>
+
+    <div class="response-box" id="responseBox"></div>
+    <iframe id="mapFrame"></iframe>
+</div>
+
+<script>
+    async function sendCommand() {
+        const inputField = document.getElementById('userInput');
+        const query = inputField.value.trim();
+        if (!query) return;
+
+        const responseBox = document.getElementById('responseBox');
+        const mapFrame = document.getElementById('mapFrame');
+        
+        responseBox.style.display = "block";
+        responseBox.innerText = "Processing mainframe request...";
+        mapFrame.style.display = "none";
+        inputField.value = "";
+
+        try {
+            const formData = new FormData();
+            formData.append('message', query);
+
+            const response = await fetch('/ask', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await response.json();
+
+            responseBox.innerText = data.text;
+
+            if (data.map_link) {
+                mapFrame.src = data.map_link;
+                mapFrame.style.display = "block";
+            }
+
+            // Trigger Audio Playback
+            const audioResponse = await fetch('/get-audio');
+            if (audioResponse.ok) {
+                const audioBlob = await audioResponse.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+            }
+
+        } catch (error) {
+            responseBox.innerText = "Error interacting with system core: " + error;
+        }
+    }
+
+    function handleKey(e) {
+        if (e.key === 'Enter') sendCommand();
+    }
+</script>
+
+</body>
+</html>
