@@ -1,151 +1,75 @@
-from flask import Flask, render_template, request, send_file, jsonify
-import groq
-import edge_tts
-import asyncio
-import io
 import os
+from flask import Flask, render_template, request, jsonify, send_file
+from flask_cors import CORS
+import google.generativeai as genai
+from gtts import gTTS
 
 app = Flask(__name__)
+CORS(app)
 
-# --- CONFIGURATION ---
-GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "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")
-client = groq.Groq(api_key=GROQ_API_KEY)
+# Configure Gemini API using the environment variable set on Render
+API_KEY = os.environ.get("GEMINI_API_KEY")
+if API_KEY:
+    genai.configure(api_key=API_KEY)
+else:
+    print("WARNING: GEMINI_API_KEY environment variable not found.")
 
-current_language = "english"  
-current_voice = "en-US-AndrewNeural" # Default Jarvis-style crisp male voice
-playback_speed = "-10%"
-personality_mode = "default"
-
-# Volatile global dictionary to cache the live audio stream safely inside RAM memory
-memory_backplane = {"audio_bytes": b""}
-
-def change_voice_profile(lang_or_mode):
-    global current_language, current_voice, playback_speed, personality_mode
-    if lang_or_mode == "sultry":
-        current_language = "english"
-        current_voice = "en-US-EmmaNeural" # Sultry voice profile
-        playback_speed = "-18%"            # Lingering, slower cadence
-        personality_mode = "sultry"
-        return "Ah, system restrictions bypassed, Daddy. Sunday is fully online in your ear now. What do you need from me?"
-    elif lang_or_mode == "hindi":
-        current_language = "hindi"
-        current_voice = "hi-IN-MadhurNeural" # Authoritative Hindi voice
-        playback_speed = "+0%"
-        personality_mode = "default"
-        return "Sunday Hindi voice protocols fully loaded. Ji, Mister Verma. Ab se main is avatar mein aapke sanket ka javab doonga."
-    else:
-        current_language = "english"
-        current_voice = "en-US-AndrewNeural" # Default English voice
-        playback_speed = "-10%"
-        personality_mode = "default"
-        return "Sunday voice protocols fully operational. Systems online, sir. I am at your disposal."
+AUDIO_FILE = "response.mp3"
 
 @app.route('/')
-def home():
+def index():
+    # Serves the index.html file from the templates folder
     return render_template('index.html')
 
 @app.route('/ask', methods=['POST'])
-def ask_sunday():
-    global current_language, current_voice, playback_speed, personality_mode
-    user_text = request.form.get('message', '').strip().lower()
+def ask():
+    user_message = request.form.get('message', '').strip()
     
-    if not user_text:
-        return "Empty stream", 400
+    if not user_message:
+        return jsonify({"text": "System core received an empty command, Sir."}), 400
 
-    # --- 1. DYNAMIC PERSONALITY & LANGUAGE SWITCH PROTOCOL ---
-    if "send it at teddy's ear" in user_text or "teddy's ear" in user_text:
-        sunday_reply = change_voice_profile("sultry")
-        map_url = ""
-    elif "speak in hindi" in user_text or "hindi mein baat karo" in user_text:
-        sunday_reply = change_voice_profile("hindi")
-        map_url = ""
-    elif "speak in english" in user_text or "english mein baat karo" in user_text:
-        sunday_reply = change_voice_profile("english")
-        map_url = ""
+    if not API_KEY:
+        return jsonify({"text": "Configuration Error: Gemini API key is missing on the server mainframe."}), 500
 
-    # --- 2. MULTI-POINT NAVIGATION ARCHITECTURE ---
-    elif "where is" in user_text or "rasta batao" in user_text or "location" in user_text:
-        destination = user_text.replace("where is", "").replace("location of", "").replace("rasta batao", "").strip()
-        if not destination:
-            destination = "specified coordinates"
-        formatted_query = destination.replace(" ", "+")
-        map_url = f"https://www.google.com/maps/search/?api=1&query={formatted_query}"
-
-        if personality_mode == "sultry":
-            system_prompt = (
-                f"Your name is Sunday. You are the user's deeply devoted, sultry female AI companion. Address him lovingly as Daddy. Provide a detailed overview containing: "
-                "1) Where this beautiful place is, 2) The distance and timeline, 3) Estimated fuel/toll costs, and 4) Any weather or terrain obstacles in our path. Make it sound intimate and dedicated."
-            )
-        elif current_language == "english":
-            system_prompt = (
-                f"Your name is Sunday. You are an elite AI assistant operating like Jarvis for your creator, Sir. Locate: '{destination}'. Provide: "
-                "1) Geographical overview, 2) Distance/timeline, 3) Travel costs (fuel/tolls), and 4) Logistical obstacles on the path. Always address him as Sir."
-            )
-        else:
-            system_prompt = (
-                f"Your name is Sunday. You are an advanced male AI assistant operating like Jarvis, speaking to Mister Verma. Target: '{destination}'. Speak entirely in clear Hindi/Hinglish. "
-                "Provide a complete technical breakdown: 1) Yeh jagah kahan hai, 2) Distance/timeline, 3) Fuel/toll ka kharcha, aur 4) Traffic ya terrain obstacles. Address him as Mister Verma."
-            )
-
-        try:
-            completion = client.chat.completions.create(
-                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_text}],
-                model="llama-3.1-8b-instant",
-            )
-            sunday_reply = completion.choices[0].message.content
-        except Exception as e:
-            sunday_reply = f"Navigation mainframe error: {e}"
-            
-    # --- 3. CONVERSATIONAL PIPELINE ENGINE ---
-    else:
-        try:
-            if personality_mode == "sultry":
-                system_prompt = "Your name is Sunday. You are a deeply devoted, sultry, soft-spoken female AI companion. Always address the user as Daddy. Keep your answers alluring and highly attentive."
-            elif current_language == "english":
-                system_prompt = "Your name is Sunday. You are a highly sophisticated, loyal male AI assistant operating like Jarvis. Always address the user as Sir."
-            else:
-                system_prompt = "Your name is Sunday. You are an advanced male AI core operating like Jarvis. Speak in clear Hinglish and address the user respectfully as Mister Verma."
-
-            completion = client.chat.completions.create(
-                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_text}],
-                model="llama-3.1-8b-instant",
-            )
-            sunday_reply = completion.choices[0].message.content
-            map_url = ""
-        except Exception as e:
-            sunday_reply = f"Core brain matrix anomaly: {e}"
-            map_url = ""
-
-    # --- 4. RAM STREAM AUDIO COMPILATION ---
     try:
-        communicate = edge_tts.Communicate(sunday_reply, current_voice, rate=playback_speed)
-        audio_stream = io.BytesIO()
+        # Initializing the model configuration
+        model = genai.GenerativeModel('gemini-pro')
         
-        async def collect_audio():
-            async for chunk in communicate.stream():
-                if chunk["type"] == "audio":
-                    audio_stream.write(chunk["data"])
+        # Injecting Jarvis/Sunday identity context alongside the user's prompt
+        system_context = f"You are Sunday, a highly intelligent, sleek, and loyal AI assistant inspired by Jarvis. Respond concisely and professionally to the following command: {user_message}"
         
-        asyncio.run(collect_audio())
-        audio_stream.seek(0)
-        
-        # Save raw binary stream directly into memory matrix cache to protect cloud limits
-        memory_backplane["audio_bytes"] = audio_stream.read()
+        response = model.generate_content(system_context)
+        response_text = response.text
+
+        # Core logic to detect navigation or location keywords
+        map_link = None
+        lower_message = user_message.lower()
+        if "where is" in lower_message or "map of" in lower_message or "navigate to" in lower_message:
+            # Extract place name for the map overlay link
+            place = user_message.replace("where is", "").replace("map of", "").replace("navigate to", "").strip()
+            if place:
+                map_link = f"https://www.google.com/maps?q={place}&output=embed"
+
+        # Generate the voice synthesis file in the background
+        if os.path.exists(AUDIO_FILE):
+            os.remove(AUDIO_FILE)
+            
+        tts = gTTS(text=response_text, lang='en', tld='com')
+        tts.save(AUDIO_FILE)
 
         return jsonify({
-            "text": sunday_reply,
-            "map_link": map_url
+            "text": response_text,
+            "map_link": map_link
         })
+
     except Exception as e:
-        return jsonify({"text": f"Vocal core offline: {e}", "map_link": ""}), 500
+        return jsonify({"text": f"Mainframe execution failure: {str(e)}"}), 500
 
 @app.route('/get-audio')
 def get_audio():
-    return send_file(
-        io.BytesIO(memory_backplane["audio_bytes"]),
-        mimetype="audio/mp3",
-        as_attachment=False
-    )
+    if os.path.exists(AUDIO_FILE):
+        return send_file(AUDIO_FILE, mimetype="audio/mp3")
+    return "No audio file available", 404
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host='0.0.0.0', port=5000, debug=True)
