@@ -129,20 +129,12 @@
             cursor: pointer;
             font-weight: bold;
         }
-        iframe {
-            width: 100%;
-            height: 250px;
-            border: none;
-            border-radius: 12px;
-            margin-top: 10px;
-            display: none;
-        }
     </style>
 </head>
 <body>
 
 <div class="sidebar">
-    <h3>Chat History</h3>
+    <h3>Chat Streams</h3>
     <div class="history-container" id="historyContainer"></div>
     <div class="user-profile">
         <span>Sir: <strong>{{ username }}</strong></span>
@@ -151,14 +143,13 @@
 </div>
 
 <div class="chat-area">
-    <div class="chat-header">Sunday AI Operational System</div>
+    <div class="chat-header">Sunday AI Terminal Console</div>
     <div class="messages-box" id="messagesBox"></div>
     <div class="input-wrapper">
         <div class="input-area">
-            <input type="text" id="userInput" placeholder="Send a command..." onkeypress="handleKey(event)">
+            <input type="text" id="userInput" placeholder="Establish connection matrix..." onkeypress="handleKey(event)">
             <button onclick="sendCommand()">Execute</button>
         </div>
-        <iframe id="mapFrame"></iframe>
     </div>
 </div>
 
@@ -187,7 +178,7 @@
                 msgBox.appendChild(mDiv);
             });
             msgBox.scrollTop = msgBox.scrollHeight;
-        } catch (e) { console.error("History retrieval matrix error.", e); }
+        } catch (e) { console.error("History engine structural tracking alert.", e); }
     }
 
     async function sendCommand() {
@@ -196,8 +187,6 @@
         if (!query) return;
 
         const msgBox = document.getElementById('messagesBox');
-        const mapFrame = document.getElementById('mapFrame');
-        mapFrame.style.display = "none";
         inputField.value = "";
 
         const userDiv = document.createElement('div');
@@ -208,7 +197,7 @@
 
         const botDiv = document.createElement('div');
         botDiv.className = 'msg assistant';
-        botDiv.innerText = "Synchronizing core link...";
+        botDiv.innerText = "Processing vector logs...";
         msgBox.appendChild(botDiv);
 
         try {
@@ -221,11 +210,6 @@
             botDiv.innerText = data.text;
             msgBox.scrollTop = msgBox.scrollHeight;
 
-            if (data.map_link) {
-                mapFrame.src = data.map_link;
-                mapFrame.style.display = "block";
-            }
-
             const audioResponse = await fetch('/get-audio');
             if (audioResponse.ok) {
                 const audioBlob = await audioResponse.blob();
@@ -237,7 +221,7 @@
             loadHistory();
 
         } catch (error) {
-            botDiv.innerText = "System core interface transmission error.";
+            botDiv.innerText = "System interface connectivity breakdown.";
         }
     }
 
