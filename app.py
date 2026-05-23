@@ -7,7 +7,7 @@ from gtts import gTTS
 app = Flask(__name__)
 CORS(app)
 
-GROQ_API_KEY = os.environ.get("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")
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 client = None
 
 if GROQ_API_KEY:
