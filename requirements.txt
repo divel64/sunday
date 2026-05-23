@@ -3,3 +3,4 @@ flask-cors
 groq
 gTTS
 gunicorn
+psycopg2-binary
