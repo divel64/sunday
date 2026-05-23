@@ -14,7 +14,6 @@
             margin: 0;
             overflow: hidden;
         }
-        /* Layout split: Sidebar and Main Chat View */
         .sidebar {
             width: 260px;
             background: #13131a;
@@ -164,7 +163,6 @@
 </div>
 
 <script>
-    // Load historical entries on layout initializations
     async function loadHistory() {
         const container = document.getElementById('historyContainer');
         const msgBox = document.getElementById('messagesBox');
@@ -176,7 +174,6 @@
             const history = await response.json();
             
             history.forEach(item => {
-                // Populate sidebar tracking strings
                 if (item.role === 'user') {
                     const hDiv = document.createElement('div');
                     hDiv.className = 'history-item';
@@ -184,14 +181,13 @@
                     container.appendChild(hDiv);
                 }
                 
-                // Mirror chat historical entries to layout main timeline
                 const mDiv = document.createElement('div');
                 mDiv.className = `msg ${item.role}`;
                 mDiv.innerText = item.content;
                 msgBox.appendChild(mDiv);
             });
             msgBox.scrollTop = msgBox.scrollHeight;
-        } catch (e) { console.error("Error fetching core history logs", e); }
+        } catch (e) { console.error("History retrieval matrix error.", e); }
     }
 
     async function sendCommand() {
@@ -204,14 +200,12 @@
         mapFrame.style.display = "none";
         inputField.value = "";
 
-        // Append User dialog bubble
         const userDiv = document.createElement('div');
         userDiv.className = 'msg user';
         userDiv.innerText = query;
         msgBox.appendChild(userDiv);
         msgBox.scrollTop = msgBox.scrollHeight;
 
-        // Mock Processing response token block
         const botDiv = document.createElement('div');
         botDiv.className = 'msg assistant';
         botDiv.innerText = "Synchronizing core link...";
@@ -240,7 +234,6 @@
                 audio.play();
             }
             
-            // Re-sync history stream components
             loadHistory();
 
         } catch (error) {
