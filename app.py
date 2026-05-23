@@ -7,14 +7,14 @@ from groq import Groq
 from gtts import gTTS
 
 app = Flask(__name__)
-# Secret key required to keep user sessions secure
+# Secure encryption key for user sessions
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "sunday_mainframe_encryption_key_99")
 CORS(app)
 
-DB_FILE = "sunday.db"
-AUDIO_FILE = "response.mp3"
+# Saving to /tmp guarantees Render has permissions to read/write the database file
+DB_FILE = "/tmp/sunday.db"
+AUDIO_FILE = "/tmp/response.mp3"
 
-# Initialize database tables
 def init_db():
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
@@ -38,6 +38,7 @@ def init_db():
     conn.commit()
     conn.close()
 
+# Initialize tables immediately on boot up
 init_db()
 
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
@@ -80,8 +81,10 @@ def login():
             cursor.execute("SELECT id, password FROM users WHERE username = ?", (username,))
             user = cursor.fetchone()
             conn.close()
+            
+            # FIXED: Accessing tuple index [0] and [1] directly to stop the 500 error crash
             if user and check_password_hash(user[1], password):
-                session['user_id'] = user.id if hasattr(user, 'id') else user[0]
+                session['user_id'] = user[0]
                 session['username'] = username
                 return redirect(url_for('index'))
             return render_template('login.html', error="Invalid identity verification matrix.")
@@ -121,13 +124,13 @@ def ask():
 
     user_id = session['user_id']
 
-    # Record user message in DB
+    # Log user message entry
     conn = sqlite3.connect(DB_FILE)
     cursor = conn.cursor()
     cursor.execute("INSERT INTO history (user_id, role, content) VALUES (?, 'user', ?)", (user_id, user_message))
     conn.commit()
 
-    # Pull past conversation context for Groq memory tracking
+    # Build historical content stream context for Groq memory tracking
     cursor.execute("SELECT role, content FROM history WHERE user_id = ? ORDER BY id ASC LIMIT 20", (user_id,))
     past_rows = cursor.fetchall()
     conn.close()
@@ -143,14 +146,13 @@ def ask():
         )
         response_text = chat_completion.choices[0].message.content
 
-        # Record assistant reply in DB
+        # Save assistant text message response
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
         cursor.execute("INSERT INTO history (user_id, role, content) VALUES (?, 'assistant', ?)", (user_id, response_text))
         conn.commit()
         conn.close()
 
-        # Handle map checks
         map_link = None
         lower_message = user_message.lower()
         if "where is" in lower_message or "map of" in lower_message or "navigate to" in lower_message:
