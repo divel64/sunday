@@ -1,5 +1,5 @@
 import os
-import sqlite3
+import psycopg2
 import hashlib
 from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, session
 from flask_cors import CORS
@@ -10,34 +10,39 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "sunday_mainframe_secure_key_101")
 CORS(app)
 
-DB_FILE = "/tmp/sunday.db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+def get_db_connection():
+    # Establishes a secure pipeline to Render's hosted database cluster
+    return psycopg2.connect(DATABASE_URL)
 
 def init_db():
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             password TEXT NOT NULL
         )
     ''')
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL,
             role TEXT NOT NULL,
             content TEXT NOT NULL,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id)
         )
     ''')
     conn.commit()
+    cursor.close()
     conn.close()
 
-init_db()
+if DATABASE_URL:
+    init_db()
 
-# Custom lightweight SHA-256 hashing to prevent Werkzeug version crash bugs
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -60,27 +65,31 @@ def login():
         if not username or not password:
             return render_template('login.html', error="All entry fields must be filled.")
 
-        conn = sqlite3.connect(DB_FILE)
+        conn = get_db_connection()
         cursor = conn.cursor()
 
         if action == "register":
             try:
                 hashed_pw = hash_password(password)
-                cursor.execute("INSERT INTO users (username, password) VALUES (?, ?)", (username, hashed_pw))
+                cursor.execute("INSERT INTO users (username, password) VALUES (%s, %s)", (username, hashed_pw))
                 conn.commit()
-                cursor.execute("SELECT id FROM users WHERE username = ?", (username,))
+                cursor.execute("SELECT id FROM users WHERE username = %s", (username,))
                 row = cursor.fetchone()
                 session['user_id'] = row[0]
                 session['username'] = username
+                cursor.close()
                 conn.close()
                 return redirect(url_for('index'))
-            except sqlite3.IntegrityError:
+            except Exception:
+                conn.rollback()
+                cursor.close()
                 conn.close()
                 return render_template('login.html', error="Username already exists.")
         
         elif action == "login":
-            cursor.execute("SELECT id, password FROM users WHERE username = ?", (username,))
+            cursor.execute("SELECT id, password FROM users WHERE username = %s", (username,))
             user = cursor.fetchone()
+            cursor.close()
             conn.close()
             
             if user and user[1] == hash_password(password):
@@ -101,10 +110,11 @@ def get_history():
     if 'user_id' not in session:
         return jsonify({"error": "Unauthorized"}), 401
     
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT role, content FROM history WHERE user_id = ? ORDER BY id ASC", (session['user_id'],))
+    cursor.execute("SELECT role, content FROM history WHERE user_id = %s ORDER BY id ASC", (session['user_id'],))
     rows = cursor.fetchall()
+    cursor.close()
     conn.close()
     
     history_list = [{"role": row[0], "content": row[1]} for row in rows]
@@ -124,13 +134,14 @@ def ask():
 
     user_id = session['user_id']
 
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("INSERT INTO history (user_id, role, content) VALUES (?, 'user', ?)", (user_id, user_message))
+    cursor.execute("INSERT INTO history (user_id, role, content) VALUES (%s, 'user', %s)", (user_id, user_message))
     conn.commit()
 
-    cursor.execute("SELECT role, content FROM history WHERE user_id = ? ORDER BY id ASC LIMIT 20", (user_id,))
+    cursor.execute("SELECT role, content FROM history WHERE user_id = %s ORDER BY id ASC LIMIT 20", (user_id,))
     past_rows = cursor.fetchall()
+    cursor.close()
     conn.close()
 
     messages = [{"role": "system", "content": "You are Sunday, a highly intelligent, sleek, and loyal AI assistant inspired by Jarvis. Respond concisely and professionally."}]
@@ -144,10 +155,11 @@ def ask():
         )
         response_text = chat_completion.choices[0].message.content
 
-        conn = sqlite3.connect(DB_FILE)
+        conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("INSERT INTO history (user_id, role, content) VALUES (?, 'assistant', ?)", (user_id, response_text))
+        cursor.execute("INSERT INTO history (user_id, role, content) VALUES (%s, 'assistant', %s)", (user_id, response_text))
         conn.commit()
+        cursor.close()
         conn.close()
 
         map_link = None
@@ -157,7 +169,6 @@ def ask():
             if place:
                 map_link = f"https://www.google.com/maps?q={place}&output=embed"
 
-        # Unique user audio files to completely prevent file locking collisions
         user_audio_path = f"/tmp/response_{user_id}.mp3"
         if os.path.exists(user_audio_path):
             try: os.remove(user_audio_path)
