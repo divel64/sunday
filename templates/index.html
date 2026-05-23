@@ -10,41 +10,101 @@
             color: #e2e8f0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             height: 100vh;
             margin: 0;
             overflow: hidden;
         }
-        .container {
-            text-align: center;
-            width: 90%;
-            max-width: 600px;
+        /* Layout split: Sidebar and Main Chat View */
+        .sidebar {
+            width: 260px;
+            background: #13131a;
+            border-right: 1px solid #222230;
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
         }
-        .logo-box {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-            animation: pulse 2s infinite ease-in-out;
+        .sidebar h3 {
+            font-size: 0.9rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
         }
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 0.8; }
-            50% { transform: scale(1.08); opacity: 1; filter: drop-shadow(0 0 15px #4285f4); }
-            100% { transform: scale(1); opacity: 0.8; }
+        .history-container {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 15px;
         }
-        h1 {
-            font-size: 2rem;
-            font-weight: 600;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, #4285f4, #9b72cb, #d96570);
+        .history-item {
+            padding: 10px;
+            border-radius: 8px;
+            background: #1c1c24;
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #cbd5e1;
+        }
+        .user-profile {
+            padding-top: 10px;
+            border-top: 1px solid #222230;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        .logout-btn {
+            color: #f43f5e;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0d0d11;
+        }
+        .chat-header {
+            padding: 15px 30px;
+            border-bottom: 1px solid #1c1c26;
+            font-size: 1.2rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #4285f4, #9b72cb);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .subtitle {
-            color: #94a3b8;
-            margin-bottom: 30px;
-            font-size: 1rem;
+        .messages-box {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .msg {
+            max-width: 75%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            line-height: 1.5;
+            font-size: 0.95rem;
+        }
+        .msg.user {
+            background: #1e1e28;
+            color: #fff;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .msg.assistant {
+            background: rgba(66, 133, 244, 0.08);
+            border: 1px solid rgba(66, 133, 244, 0.2);
+            color: #cbd5e1;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .input-wrapper {
+            padding: 20px 30px;
+            background: #0d0d11;
         }
         .input-area {
             display: flex;
@@ -52,7 +112,6 @@
             border: 1px solid #2d2d39;
             border-radius: 30px;
             padding: 8px 16px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         input {
             flex: 1;
@@ -60,7 +119,6 @@
             border: none;
             color: #fff;
             font-size: 1rem;
-            padding: 8px;
             outline: none;
         }
         button {
@@ -71,87 +129,103 @@
             border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
-            transition: transform 0.2s;
-        }
-        button:hover {
-            transform: scale(1.05);
-        }
-        .response-box {
-            margin-top: 30px;
-            padding: 15px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 12px;
-            min-height: 50px;
-            display: none;
-            color: #cbd5e1;
-            text-align: left;
-            line-height: 1.5;
         }
         iframe {
             width: 100%;
-            height: 300px;
+            height: 250px;
             border: none;
             border-radius: 12px;
-            margin-top: 20px;
+            margin-top: 10px;
             display: none;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <div class="logo-box">
-        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="2" y="3" width="20" height="18" rx="3" stroke="url(#grad)" stroke-width="2"/>
-            <path d="M7 8L11 12L7 16" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="13" y1="16" x2="17" y2="16" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round"/>
-            <defs>
-                <linearGradient id="grad" x1="0" y1="0" x2="24" y2="24">
-                    <stop offset="0%" stop-color="#4285f4" />
-                    <stop offset="50%" stop-color="#9b72cb" />
-                    <stop offset="100%" stop-color="#d96570" />
-                </linearGradient>
-            </defs>
-        </svg>
+<div class="sidebar">
+    <h3>Chat History</h3>
+    <div class="history-container" id="historyContainer"></div>
+    <div class="user-profile">
+        <span>Sir: <strong>{{ username }}</strong></span>
+        <a href="/logout" class="logout-btn">Disconnect</a>
     </div>
+</div>
 
-    <h1>Sunday AI Operational</h1>
-    <div class="subtitle">System mainframe initialized. Ready for input, Sir.</div>
-
-    <div class="input-area">
-        <input type="text" id="userInput" placeholder="Send a command..." onkeypress="handleKey(event)">
-        <button onclick="sendCommand()">Execute</button>
+<div class="chat-area">
+    <div class="chat-header">Sunday AI Operational System</div>
+    <div class="messages-box" id="messagesBox"></div>
+    <div class="input-wrapper">
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Send a command..." onkeypress="handleKey(event)">
+            <button onclick="sendCommand()">Execute</button>
+        </div>
+        <iframe id="mapFrame"></iframe>
     </div>
-
-    <div class="response-box" id="responseBox"></div>
-    <iframe id="mapFrame"></iframe>
 </div>
 
 <script>
+    // Load historical entries on layout initializations
+    async function loadHistory() {
+        const container = document.getElementById('historyContainer');
+        const msgBox = document.getElementById('messagesBox');
+        container.innerHTML = "";
+        msgBox.innerHTML = "";
+        
+        try {
+            const response = await fetch('/get-history');
+            const history = await response.json();
+            
+            history.forEach(item => {
+                // Populate sidebar tracking strings
+                if (item.role === 'user') {
+                    const hDiv = document.createElement('div');
+                    hDiv.className = 'history-item';
+                    hDiv.innerText = item.content;
+                    container.appendChild(hDiv);
+                }
+                
+                // Mirror chat historical entries to layout main timeline
+                const mDiv = document.createElement('div');
+                mDiv.className = `msg ${item.role}`;
+                mDiv.innerText = item.content;
+                msgBox.appendChild(mDiv);
+            });
+            msgBox.scrollTop = msgBox.scrollHeight;
+        } catch (e) { console.error("Error fetching core history logs", e); }
+    }
+
     async function sendCommand() {
         const inputField = document.getElementById('userInput');
         const query = inputField.value.trim();
         if (!query) return;
 
-        const responseBox = document.getElementById('responseBox');
+        const msgBox = document.getElementById('messagesBox');
         const mapFrame = document.getElementById('mapFrame');
-        
-        responseBox.style.display = "block";
-        responseBox.innerText = "Processing mainframe request...";
         mapFrame.style.display = "none";
         inputField.value = "";
+
+        // Append User dialog bubble
+        const userDiv = document.createElement('div');
+        userDiv.className = 'msg user';
+        userDiv.innerText = query;
+        msgBox.appendChild(userDiv);
+        msgBox.scrollTop = msgBox.scrollHeight;
+
+        // Mock Processing response token block
+        const botDiv = document.createElement('div');
+        botDiv.className = 'msg assistant';
+        botDiv.innerText = "Synchronizing core link...";
+        msgBox.appendChild(botDiv);
 
         try {
             const formData = new FormData();
             formData.append('message', query);
 
-            const response = await fetch('/ask', {
-                method: 'POST',
-                body: formData
-            });
+            const response = await fetch('/ask', { method: 'POST', body: formData });
             const data = await response.json();
 
-            responseBox.innerText = data.text;
+            botDiv.innerText = data.text;
+            msgBox.scrollTop = msgBox.scrollHeight;
 
             if (data.map_link) {
                 mapFrame.src = data.map_link;
@@ -165,15 +239,17 @@
                 const audio = new Audio(audioUrl);
                 audio.play();
             }
+            
+            // Re-sync history stream components
+            loadHistory();
 
         } catch (error) {
-            responseBox.innerText = "Error interacting with system core: " + error;
+            botDiv.innerText = "System core interface transmission error.";
         }
     }
 
-    function handleKey(e) {
-        if (e.key === 'Enter') sendCommand();
-    }
+    function handleKey(e) { if (e.key === 'Enter') sendCommand(); }
+    window.onload = loadHistory;
 </script>
 
 </body>
